@@ -17,10 +17,6 @@ ui <- shinyUI(
                                                    selected = "all"))
                              ),
                            
-                           fluidRow(
-                             column(3, actionButton("getInjuries", "Get Injuries"))
-                           ),
-                           
                            br(),
                            
                            fluidRow(
@@ -66,23 +62,23 @@ ui <- shinyUI(
                              )
                              
                            )
-                           ),
+                  ),
                   
                   tabPanel("Analyze Player",
                            fluidRow(
                              column(3, selectInput("player", "Enter Player: ", selected = "LeBron James", 
-                                                                               choices = unique(dt.final_players$player))),
+                                                   choices = unique(dt.final_players$player))),
                              column(3, selectInput("year", "Choose year: ", selected = 2019, choices = c(2017, 2018, 2019)))
                            ),
                            fluidRow(
                              column(9, plotlyOutput("timeSeries", width = 1400, height = 700) %>% withSpinner(color="#0dc5c1"))
                            )
-                           ),
+                  ),
                   tabPanel("Research Player",
                            fluidRow(
                              column(9, dataTableOutput("playerBeta") %>% withSpinner(color="#0dc5c1"))
                            )
-                           )
+                  )
       )
     )
   )

@@ -1,32 +1,5 @@
 
 server <- function(input, output, session) {
-  funcGetInjuries <- function(vec_players){
-    dt.return.this <- rbindlist(lapply(vec_players, function(my_player){
-      print(my_player)
-      link <- paste0("https://www.basketball-reference.com",
-                     paste0(dt.player_links[player == my_player]$link))
-      
-      injury_list <- link %>%
-        read_html() %>%
-        html_nodes(xpath='//*[@id="injury"]')
-      
-      
-      if (length(injury_list) > 0){
-        dt.return <- data.table(player = my_player,
-                                injured = TRUE)
-      } else{
-        
-        dt.return <- data.table(player = my_player,
-                                injured = FALSE)
-      }
-      return (dt.return)
-      
-    }))
-    
-    return(dt.return.this)
-    
-  }
-  
   getData <- reactive({
     start_date <- input$NBA_Start_Date
     # Get Sunday of this week
@@ -84,13 +57,11 @@ server <- function(input, output, session) {
     dt.final_data_set_with_games[grepl("F", position)]$position <- "F"
     
     #Get injuries data
-    if (input$getInjuries){
-      dt.injuries <- funcGetInjuries(unique(dt.final_data_set_with_games$player))
-      dt.final_data_set_with_games <- merge(dt.final_data_set_with_games,
-                                                 dt.injuries, by = c("player"))
-      if (nrow(dt.final_data_set_with_games[injured == TRUE])){
+    dt.final_data_set_with_games <- merge(dt.final_data_set_with_games,
+                                          dt.injuries, by = c("player"))
+      
+    if (nrow(dt.final_data_set_with_games[injured == TRUE])){
         dt.final_data_set_with_games[injured == TRUE]$status <- "unavailable"
-      }
     }
     
     # Merge on the schedule
@@ -125,11 +96,11 @@ server <- function(input, output, session) {
     }
     
     my_plt <- ggplot(dt.final_data_set_with_games_plot, aes(x = minutes_played, 
-                                                       y = projected_fantasy_points,
-                                                       color = paste(game_count, status),
-                                                       text = paste0("Projected fantasy points: ", projected_fantasy_points,
-                                                                     "\nPlayer: ", player,
-                                                                     "\nPosition: ", position))) + 
+                                                            y = projected_fantasy_points,
+                                                            color = paste(game_count, status),
+                                                            text = paste0("Projected fantasy points: ", projected_fantasy_points,
+                                                                          "\nPlayer: ", player,
+                                                                          "\nPosition: ", position))) + 
       geom_point(position = "jitter") + 
       geom_hline(yintercept = min(dt.final_data_set_with_games[owner == "me"]$projected_fantasy_points), linetype = "dashed") +
       xlab("Minutes Played") + ylab("Projected fantasy points") + 

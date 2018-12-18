@@ -28,7 +28,7 @@ vec.kyle <- c("Nikola Jokic", "De'Aaron Fox", "Victor Oladipo", "Robert Covingto
               "Eric Bledsoe", "Nikola Vucevic", "Dorian Finney-Smith")
 
 vec.edward <- c("Ricky Rubio", "CJ McCollum", "DeMar DeRozan", "Anthony Davis", "Karl-Anthony Towns",
-                "Lou Williams", "Aaron Gordon", "Kyle Lowry", "Myles Turner", "Willie Cauley-Stein",
+                "Derrick Favors", "Aaron Gordon", "Kyle Lowry", "Myles Turner", "Willie Cauley-Stein",
                 "Kemba Walker", "Al Horford", "Zach LaVine")
 
 vec.daniel <- c("Kyrie Irving", "Luka Doncic", "Giannis Antetokounmpo", "Rudy Gay", "Jusuf Nurkic",
@@ -122,13 +122,37 @@ dt.final_players[,id := 1:nrow(dt.final_players)]
 dt.final_players <- dt.final_players[dt.final_players[, .I[id == max(id)], by=player]$V1]
 dt.final_players[,id := NULL]
 
-# dt.final_players[,owner := "none"]
-# dt.final_players[,status := "available"]
-# dt.final_players[player %in% vec.my_players]$owner <- "me"
-# dt.final_players[player %in% vec.alex]$owner <- "alex"
-# dt.final_players[player %in% vec.kyle]$owner <- "kyle"
-# dt.final_players[player %in% vec.edward]$owner <- "edward"
-# dt.final_players[player %in% vec.daniel]$owner <- "daniel"
-# dt.final_players[player %in% vec.liam]$owner <- "liam"
-# dt.final_players[owner != "none",status := "unavailable"]
+funcGetInjuries <- function(vec_players){
+  dt.return.this <- rbindlist(lapply(vec_players, function(my_player){
+    print(my_player)
+    link <- paste0("https://www.basketball-reference.com",
+                   paste0(dt.player_links[player == my_player]$link))
+    
+    injury_list <- link %>%
+      read_html() %>%
+      html_nodes(xpath='//*[@id="injury"]')
+    
+    
+    if (length(injury_list) > 0){
+      dt.return <- data.table(player = my_player,
+                              injured = TRUE)
+    } else{
+      
+      dt.return <- data.table(player = my_player,
+                              injured = FALSE)
+    }
+    return (dt.return)
+    
+  }))
+  
+  return(dt.return.this)
+  
+}
+
+dt.injuries <- funcGetInjuries(unique(dt.final_players$player))
+
+
+
+
+
 
