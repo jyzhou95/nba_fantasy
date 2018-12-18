@@ -1,0 +1,12 @@
+name: nba_fantasy_trade_analyzer
+title: nba_fantasy_trade_analyzer
+username:
+account: jing-yi-zhou
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 619291
+bundleId: 1770059
+url: https://jing-yi-zhou.shinyapps.io/nba_fantasy_trade_analyzer/
+when: 1545115590.8177
+asMultiple: FALSE
+asStatic: FALSE
