@@ -60,7 +60,7 @@ dt.team_code <- data.table(team = c('Atlanta Hawks','Boston Celtics','Brooklyn N
 
 lastmon <- function(x) 7 * floor(as.numeric(x-1+4)/7) + as.Date(1-4, origin="1970-01-01")
 
-start_date <- floor_date(Sys.Date())
+start_date <- lastmon(Sys.Date())
 
 
 # Get current standings

@@ -143,8 +143,21 @@ server <- function(input, output, session) {
                                               unique(dt.return.this[,list(player, owner)]),
                                               by = c("player"))
     
-    dt.plot.this <- dt.player_performance_with_owner[,list(fantasy_points = sum(fantasy_points)),
+    dt.plot.this <- dt.player_performance_with_owner[,list(fantasy_points = sum(fantasy_points),
+                                                           type = "actual"),
                                      by = list(dt, owner)]
+    
+    dt.plot.this.predicted <- dt.return.this[,list(fantasy_points = sum(avg_fantasy_points),
+                                                   type = "predicted"),
+                                                   by = list(dt, owner)]
+    
+    dt.plot.merged <- rbind(dt.plot.this, dt.plot.this.predicted)
+    dt.plot.merged$dt <- as.Date(dt.plot.merged$dt)
+    plt <- ggplot(dt.plot.merged, aes(x = dt, y = fantasy_points, fill = type)) +
+      geom_bar(stat = "identity", position = "dodge") + theme_bw(base_size = 15) + scale_fill_brewer(palette = "Set1") +
+      facet_wrap(~owner)
+      
+    ggplotly(plt)
     
   })
   
