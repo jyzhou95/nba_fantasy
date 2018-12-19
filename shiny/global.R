@@ -122,36 +122,100 @@ dt.final_players[,id := 1:nrow(dt.final_players)]
 dt.final_players <- dt.final_players[dt.final_players[, .I[id == max(id)], by=player]$V1]
 dt.final_players[,id := NULL]
 
-funcGetInjuries <- function(vec_players){
+# funcGetInjuries <- function(vec_players){
+#   dt.return.this <- rbindlist(lapply(vec_players, function(my_player){
+#     print(my_player)
+#     link <- paste0("https://www.basketball-reference.com",
+#                    paste0(dt.player_links[player == my_player]$link))
+#     
+#     injury_list <- link %>%
+#       read_html() %>%
+#       html_nodes(xpath='//*[@id="injury"]') 
+#     
+#     
+#     if (length(injury_list) > 0){
+#       dt.return <- data.table(player = my_player,
+#                               injured = TRUE)
+#     } else{
+#       
+#       dt.return <- data.table(player = my_player,
+#                               injured = FALSE)
+#     }
+#     return (dt.return)
+#     
+#   }))
+#   
+#   return(dt.return.this)
+# }
+
+funcGetInjuries <- function(){
+  link <- "https://www.basketball-reference.com/friv/injuries.fcgi"
+  injury_list <- link %>%
+    read_html() %>%
+    html_table()
+  dt.return.this <- data.table(injury_list[[1]])
+  dt.return.this <- dt.return.this[,list(player = Player,
+                                         injured = TRUE)]
+  return (dt.return.this)
+}
+
+dt.injuries <- funcGetInjuries()
+
+# Grab player game data for the week
+getPlayerPerformance <- function(vec_players){
   dt.return.this <- rbindlist(lapply(vec_players, function(my_player){
     print(my_player)
     link <- paste0("https://www.basketball-reference.com",
-                   paste0(dt.player_links[player == my_player]$link))
+                   gsub(".html", glue("/gamelog/2019/"), paste0(dt.player_links[player == my_player]$link)))
     
-    injury_list <- link %>%
+    season_games_list <- link %>%
       read_html() %>%
-      html_nodes(xpath='//*[@id="injury"]')
+      html_nodes(xpath='//*[@id="pgl_basic"]') %>%
+      html_table(fill = TRUE)
+    season_games_list <- season_games_list[[1]]
+    dt.season_games_list <- data.table(season_games_list)
+    
+    dt.season_games_list[,G := as.numeric(G)]
+    dt.season_games_list <- dt.season_games_list[!is.na(G)]
+    dt.season_games_list <- dt.season_games_list[,list(player = my_player,
+                                                       game = G,
+                                                       dt = as.Date(Date),
+                                                       team = Tm,
+                                                       opponent = Opp,
+                                                       two_point = as.numeric(FG) - as.numeric(`3P`),
+                                                       two_point_attempt = as.numeric(FGA) - as.numeric(`3PA`),
+                                                       three_point = as.numeric(`3P`),
+                                                       three_point_attempt = as.numeric(`3PA`),
+                                                       free_throw = as.numeric(FT),
+                                                       free_throw_attempt = as.numeric(FTA),
+                                                       rebounds = as.numeric(TRB),
+                                                       assists = as.numeric(AST),
+                                                       steals = as.numeric(STL),
+                                                       blocks = as.numeric(BLK),
+                                                       turnovers = as.numeric(TOV),
+                                                       points = as.numeric(PTS)
+    )]
     
     
-    if (length(injury_list) > 0){
-      dt.return <- data.table(player = my_player,
-                              injured = TRUE)
-    } else{
-      
-      dt.return <- data.table(player = my_player,
-                              injured = FALSE)
-    }
-    return (dt.return)
+    dt.season_games_list[,fantasy_points := two_point * 3 - two_point_attempt + 
+                           three_point * 4 - three_point_attempt + 
+                           free_throw * 2 - free_throw_attempt +
+                           rebounds + assists + blocks * 3 + steals * 3 - turnovers]
+    return (dt.season_games_list)
     
   }))
-  
-  return(dt.return.this)
-  
+  return (dt.return.this)
 }
 
-dt.injuries <- funcGetInjuries(unique(dt.final_players$player))
-
-
+# dt.final_players[,owner := "none"]
+# dt.final_players[,status := "available"]
+# dt.final_players[player %in% vec.my_players]$owner <- "me"
+# dt.final_players[player %in% vec.alex]$owner <- "alex"
+# dt.final_players[player %in% vec.kyle]$owner <- "kyle"
+# dt.final_players[player %in% vec.edward]$owner <- "edward"
+# dt.final_players[player %in% vec.daniel]$owner <- "daniel"
+# dt.final_players[player %in% vec.liam]$owner <- "liam"
+# dt.final_players[owner != "none",status := "unavailable"]
 
 
 

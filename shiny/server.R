@@ -48,7 +48,7 @@ server <- function(input, output, session) {
     dt.final_players[player %in% input$danielPlayers]$owner <- "daniel"
     dt.final_players[player %in% input$liamPlayers]$owner <- "liam"
     dt.final_players[owner != "none",status := "unavailable"]
-
+    
     dt.final_data_set <- merge(dt.final_team, dt.final_players, by = c("team_code"))
     dt.final_data_set[,projected_fantasy_points := avg_fantasy_points * game_count]
     dt.final_data_set_with_games <- merge(dt.final_data_set, dt.all_standings, by = c("team"))
@@ -58,10 +58,13 @@ server <- function(input, output, session) {
     
     #Get injuries data
     dt.final_data_set_with_games <- merge(dt.final_data_set_with_games,
-                                          dt.injuries, by = c("player"))
-      
+                                          dt.injuries, by = c("player"),
+                                          all.x = TRUE)
+    dt.final_data_set_with_games[is.na(injured)]$injured <- FALSE
+    
+    
     if (nrow(dt.final_data_set_with_games[injured == TRUE])){
-        dt.final_data_set_with_games[injured == TRUE]$status <- "unavailable"
+      dt.final_data_set_with_games[injured == TRUE]$status <- "unavailable"
     }
     
     # Merge on the schedule
@@ -125,6 +128,26 @@ server <- function(input, output, session) {
     
     return (dt.return.this)
   })
+  
+  output$weekly_performance <- renderPlotly({
+    lst.final_data_set_with_games <- getData()
+    dt.player_schedule <- lst.final_data_set_with_games[[2]]
+    dt.player_schedule <- dt.player_schedule[order(avg_fantasy_points, decreasing = TRUE)]
+    dt.return.this <- dt.player_schedule[, head(.SD, 10), by=list(owner, dt)]
+    dt.num_games <- dt.player_schedule[,.N, by = list(owner)]
+    
+    dt.player_performance <- getPlayerPerformance(unique(dt.return.this$player))
+    dt.player_performance <- dt.player_performance[,list(dt, player, fantasy_points)]
+    dt.player_performance <- dt.player_performance[dt >= input$NBA_Start_Date]
+    dt.player_performance_with_owner <- merge(dt.player_performance,
+                                              unique(dt.return.this[,list(player, owner)]),
+                                              by = c("player"))
+    
+    dt.plot.this <- dt.player_performance_with_owner[,list(fantasy_points = sum(fantasy_points)),
+                                     by = list(dt, owner)]
+    
+  })
+  
   
   output$timeSeries <- renderPlotly({
     
@@ -243,4 +266,5 @@ server <- function(input, output, session) {
       }
     }))
   })
+  
 }

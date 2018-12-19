@@ -64,6 +64,11 @@ ui <- shinyUI(
                            )
                   ),
                   
+                  tabPanel("Weekly Performance Tracker",
+                           fluidRow(
+                             column(9, plotlyOutput("weekly_performance", width = 1400, height = 700) %>% withSpinner(color="#0dc5c1"))
+                           )),
+                  
                   tabPanel("Analyze Player",
                            fluidRow(
                              column(3, selectInput("player", "Enter Player: ", selected = "LeBron James", 
