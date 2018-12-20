@@ -9,7 +9,13 @@ library(plotly)
 library(ggplot2)
 library(shiny)
 library(shinycssloaders)
-
+library(requestsR)
+# https://github.com/abresler/requestsR
+# https://stmorse.github.io/journal/espn-fantasy-python.html
+library(requestsR)
+library(reticulate)
+library(jsonlite)
+library(requestsR)
 
 ###################################################################################################
 ###################################################################################################
@@ -25,7 +31,7 @@ vec.alex <- c("John Wall", "Bradley Beal", "Jayson Tatum", "Hassan Whiteside",
 
 vec.kyle <- c("Nikola Jokic", "De'Aaron Fox", "Victor Oladipo", "Robert Covington", "John Collins",
               "Damian Lillard", "Domantas Sabonis", "Larry Nance", "Kevin Durant", "Rudy Gobert",
-              "Eric Bledsoe", "Nikola Vucevic", "Dorian Finney-Smith")
+              "Eric Bledsoe", "Nikola Vucevic", "TJ Warren")
 
 vec.edward <- c("Ricky Rubio", "CJ McCollum", "DeMar DeRozan", "Anthony Davis", "Karl-Anthony Towns",
                 "Derrick Favors", "Aaron Gordon", "Kyle Lowry", "Myles Turner", "Willie Cauley-Stein",
