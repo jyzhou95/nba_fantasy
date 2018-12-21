@@ -131,31 +131,26 @@ server <- function(input, output, session) {
   
   output$weekly_performance <- renderPlotly({
     lst.final_data_set_with_games <- getData()
+    dt.player_projected_fantasy <- lst.final_data_set_with_games[[1]][,list(player, avg_fantasy_points)]
     dt.player_schedule <- lst.final_data_set_with_games[[2]]
-    dt.player_schedule <- dt.player_schedule[order(avg_fantasy_points, decreasing = TRUE)]
-    dt.return.this <- dt.player_schedule[, head(.SD, 10), by=list(owner, dt)]
-    dt.num_games <- dt.player_schedule[,.N, by = list(owner)]
+    # Get player actual performance
+    dt.actual_performance_subset <- dt.actual_performance[dt >= min(dt.player_schedule$dt) & dt <= max(dt.player_schedule$dt)]
+    dt.actual_performance_subset <- merge(dt.actual_performance_subset, dt.player_projected_fantasy, by = c("player"))
+    dt.actual_performance_subset <- dt.actual_performance_subset[lineup != 12]
+    dt.actual_performance_subset <- dt.actual_performance_subset[actual_fantasy_points != 0]
     
-    dt.player_performance <- getPlayerPerformance(unique(dt.return.this$player))
-    dt.player_performance <- dt.player_performance[,list(dt, player, fantasy_points)]
-    dt.player_performance <- dt.player_performance[dt >= input$NBA_Start_Date]
-    dt.player_performance_with_owner <- merge(dt.player_performance,
-                                              unique(dt.return.this[,list(player, owner)]),
-                                              by = c("player"))
+    dt.actual_performance_aggregate <- dt.actual_performance_subset[,list(actual_fantasy_points = sum(actual_fantasy_points),
+                                                                          projected_fantasy_points = sum(avg_fantasy_points)),
+                                                                  by = list(owner, dt)]
+  
     
-    dt.plot.this <- dt.player_performance_with_owner[,list(fantasy_points = sum(fantasy_points),
-                                                           type = "actual"),
-                                     by = list(dt, owner)]
+    dt.actual_performance_aggregate$dt <- as.Date(dt.actual_performance_aggregate$dt)
+    dt.actual_performance_aggregate <- melt(dt.actual_performance_aggregate, id.vars = c("owner", "dt"),
+                                            measure.vars = c("actual_fantasy_points", "projected_fantasy_points"))
     
-    dt.plot.this.predicted <- dt.return.this[,list(fantasy_points = sum(avg_fantasy_points),
-                                                   type = "predicted"),
-                                                   by = list(dt, owner)]
-    
-    dt.plot.merged <- rbind(dt.plot.this, dt.plot.this.predicted)
-    dt.plot.merged$dt <- as.Date(dt.plot.merged$dt)
-    plt <- ggplot(dt.plot.merged, aes(x = dt, y = fantasy_points, fill = type)) +
+    plt <- ggplot(dt.actual_performance_aggregate, aes(x = dt, y = value, fill = variable)) +
       geom_bar(stat = "identity", position = "dodge") + theme_bw(base_size = 15) + scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~owner)
+      facet_wrap(~owner) + ylab("Fantasy Points")
       
     ggplotly(plt)
     

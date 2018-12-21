@@ -9,41 +9,59 @@ library(plotly)
 library(ggplot2)
 library(shiny)
 library(shinycssloaders)
-library(requestsR)
 # https://github.com/abresler/requestsR
 # https://stmorse.github.io/journal/espn-fantasy-python.html
-library(requestsR)
-library(reticulate)
+# https://dusty-turner.netlify.com/post/mathlete-fantasy-football-analysis/
 library(jsonlite)
-library(requestsR)
+library(httr)
 
 ###################################################################################################
 ###################################################################################################
 
+dt.historical_performance <- fread("fantasy_league_performance.csv")
+dt.nba_period <- fread("period_dates.csv")
+dt.actual_performance <- merge(dt.historical_performance[,list(owner, period, player, actual_fantasy_points, lineup)],
+                               dt.nba_period[,list(period, dt)], by = c("period"))
 
-vec.my_players <- c("Chris Paul", "Devin Booker", "Kawhi Leonard", "LaMarcus Aldridge", "DeAndre Jordan",
-                    "Thaddeus Young", "LeBron James", "Enes Kanter", "Steven Adams",
-                    "Blake Griffin", "Serge Ibaka", "Josh Richardson", "Kent Bazemore")
+int.latest_game <- max(dt.actual_performance$period)
 
-vec.alex <- c("John Wall", "Bradley Beal", "Jayson Tatum", "Hassan Whiteside",
-              "James Harden", "Russell Westbrook", "Clint Capela", "Nemanja Bjelica",
-              "Deandre Ayton", "Donovan Mitchell", "Montrezl Harrell", "Nikola Mirotic", "Khris Middleton")
+# Fix people's names
+dt.actual_performance[grepl("Jr\\.", player)]$player <- substr(dt.actual_performance[grepl("Jr\\.", player)]$player, start = 0, stop = nchar(dt.actual_performance[grepl("Jr\\.", player)]$player) - 4)
 
-vec.kyle <- c("Nikola Jokic", "De'Aaron Fox", "Victor Oladipo", "Robert Covington", "John Collins",
-              "Damian Lillard", "Domantas Sabonis", "Larry Nance", "Kevin Durant", "Rudy Gobert",
-              "Eric Bledsoe", "Nikola Vucevic", "TJ Warren")
+# Remove periods from people's names
+# dt.actual_performance[grepl("\\.", player)]$player <- gsub("\\.", "", dt.actual_performance[grepl("\\.", player)]$player)
 
-vec.edward <- c("Ricky Rubio", "CJ McCollum", "DeMar DeRozan", "Anthony Davis", "Karl-Anthony Towns",
-                "Derrick Favors", "Aaron Gordon", "Kyle Lowry", "Myles Turner", "Willie Cauley-Stein",
-                "Kemba Walker", "Al Horford", "Zach LaVine")
+vec.my_players <- dt.actual_performance[period == int.latest_game & owner == "me"]$player
+vec.alex <- dt.actual_performance[period == int.latest_game & owner == "alex"]$player
+vec.kyle <- dt.actual_performance[period == int.latest_game & owner == "kyle"]$player
+vec.edward <- dt.actual_performance[period == int.latest_game & owner == "edward"]$player
+vec.daniel <- dt.actual_performance[period == int.latest_game & owner == "daniel"]$player
+vec.liam <- dt.actual_performance[period == int.latest_game & owner == "liam"]$player
 
-vec.daniel <- c("Kyrie Irving", "Luka Doncic", "Giannis Antetokounmpo", "Rudy Gay", "Jusuf Nurkic",
-                "Ben Simmons", "Draymond Green", "Joel Embiid", "Jaren Jackson", "Danilo Gallinari",
-                "JaVale McGee", "Julius Randle", "Pascal Siakam")
 
-vec.liam <- c("Stephen Curry", "Kyle Kuzma", "Jimmy Butler", "Tobias Harris", "Marc Gasol",
-              "Mike Conley", "Paul George", "Andre Drummond", "Klay Thompson", "Derrick Rose",
-              "Jrue Holiday", "Jarrett Allen", "D'Angelo Russell")
+# vec.my_players <- c("Chris Paul", "Devin Booker", "Kawhi Leonard", "LaMarcus Aldridge", "DeAndre Jordan",
+#                     "Thaddeus Young", "LeBron James", "Enes Kanter", "Steven Adams",
+#                     "Blake Griffin", "Serge Ibaka", "Josh Richardson", "Kent Bazemore")
+# 
+# vec.alex <- c("John Wall", "Bradley Beal", "Jayson Tatum", "Hassan Whiteside",
+#               "James Harden", "Russell Westbrook", "Clint Capela", "Nemanja Bjelica",
+#               "Deandre Ayton", "Donovan Mitchell", "Montrezl Harrell", "Nikola Mirotic", "Khris Middleton")
+# 
+# vec.kyle <- c("Nikola Jokic", "De'Aaron Fox", "Victor Oladipo", "Robert Covington", "John Collins",
+#               "Damian Lillard", "Domantas Sabonis", "Larry Nance", "Kevin Durant", "Rudy Gobert",
+#               "Eric Bledsoe", "Nikola Vucevic", "TJ Warren")
+# 
+# vec.edward <- c("Ricky Rubio", "CJ McCollum", "DeMar DeRozan", "Anthony Davis", "Karl-Anthony Towns",
+#                 "Derrick Favors", "Aaron Gordon", "Kyle Lowry", "Myles Turner", "Willie Cauley-Stein",
+#                 "Kemba Walker", "Al Horford", "Zach LaVine")
+# 
+# vec.daniel <- c("Kyrie Irving", "Luka Doncic", "Giannis Antetokounmpo", "Rudy Gay", "Jusuf Nurkic",
+#                 "Ben Simmons", "Draymond Green", "Joel Embiid", "Jaren Jackson", "Danilo Gallinari",
+#                 "JaVale McGee", "Julius Randle", "Pascal Siakam")
+# 
+# vec.liam <- c("Stephen Curry", "Kyle Kuzma", "Jimmy Butler", "Tobias Harris", "Marc Gasol",
+#               "Mike Conley", "Paul George", "Andre Drummond", "Klay Thompson", "Derrick Rose",
+#               "Jrue Holiday", "Jarrett Allen", "D'Angelo Russell")
 
 ###################################################################################################
 ###################################################################################################
