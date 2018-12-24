@@ -116,11 +116,16 @@ server <- function(input, output, session) {
   output$projectionTables <- renderDataTable({
     
     lst.final_data_set_with_games <- getData()
+    dt.player_projected_fantasy <- unique(lst.final_data_set_with_games[[1]][,list(player, injured)])
     dt.player_schedule <- lst.final_data_set_with_games[[2]]
-    dt.player_schedule <- dt.player_schedule[order(avg_fantasy_points, decreasing = TRUE)]
-    dt.return.this <- dt.player_schedule[, head(.SD, 10), by=list(owner, dt)]
     
-    dt.num_games <- dt.player_schedule[,.N, by = list(owner)]
+    dt.player_schedule <- dt.player_schedule[order(avg_fantasy_points, decreasing = TRUE)]
+    dt.player_schedule_final <- merge(dt.player_schedule, dt.player_projected_fantasy, by = c("player"))
+
+    dt.player_schedule_final <- dt.player_schedule_final[injured == FALSE]
+    dt.return.this <- dt.player_schedule_final[, head(.SD, 10), by=list(owner, dt)]
+    
+    dt.num_games <- dt.player_schedule_final[,.N, by = list(owner)]
     
     dt.return.this <- dt.return.this[,list(projected_fantasy_score = sum(avg_fantasy_points)),
                                            by = list(owner)][owner != "none"]
@@ -166,6 +171,8 @@ server <- function(input, output, session) {
           geom_bar(stat = "identity", position = "dodge") + theme_bw(base_size = 15) + scale_fill_brewer(palette = "Set1") +
           facet_wrap(~owner, scales = "free_x") + ylab("Fantasy Points") + theme(axis.text.x = element_text(angle = 45)) + ylab("") +
           xlab("")
+        
+        
       } else{
         dt.actual_performance_aggregate <- dt.actual_performance_subset[,list(actual_fantasy_points = sum(actual_fantasy_points),
                                                                               projected_fantasy_points = sum(avg_fantasy_points)),
