@@ -62,8 +62,8 @@ remDr$closeall()
 rm(driver)
 gc()
 
-dt.bind.to.this <- fread("D:/Desktop/nba_fantasy/fantasy_league_performance.csv")
+dt.bind.to.this <- fread("D:/Desktop/nba_fantasy/shiny/fantasy_league_performance.csv")
 dt.bind.to.this[,V1 := NULL]
 dt.bind.to.this <- rbind(dt.bind.to.this, dt.write.this)
 
-write.csv(x = dt.bind.to.this,file = "D:/Desktop/nba_fantasy/fantasy_league_performance.csv")
+write.csv(x = dt.bind.to.this,file = "D:/Desktop/nba_fantasy/shiny/fantasy_league_performance.csv")
