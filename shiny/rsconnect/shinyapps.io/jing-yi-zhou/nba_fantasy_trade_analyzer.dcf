@@ -5,8 +5,8 @@ account: jing-yi-zhou
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 619291
-bundleId: 1778360
+bundleId: 1778470
 url: https://jing-yi-zhou.shinyapps.io/nba_fantasy_trade_analyzer/
-when: 1545411635.73653
+when: 1545416256.44963
 asMultiple: FALSE
 asStatic: FALSE

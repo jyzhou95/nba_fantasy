@@ -17,6 +17,12 @@ ui <- shinyUI(
                                                    selected = "all"))
                              ),
                            
+                           # br(),
+                           # 
+                           # fluidRow(
+                           #   column(3, materialSwitch(inputId = "historicalLookback", label = "Use past 10 days", status = "primary", right = FALSE))
+                           # ),
+                           
                            br(),
                            
                            fluidRow(
@@ -66,8 +72,13 @@ ui <- shinyUI(
                   
                   tabPanel("Weekly Performance Tracker",
                            fluidRow(
-                             column(9, plotlyOutput("weekly_performance", width = 1400, height = 700) %>% withSpinner(color="#0dc5c1"))
-                           )),
+                             column(3, materialSwitch(inputId = "playerPerformance", label = "Show player performance", status = "primary", right = FALSE))
+                           ),
+                           br(),
+                           fluidRow(
+                             column(9, plotlyOutput("weekly_performance", width = 1400, height = 1200) %>% withSpinner(color="#0dc5c1"))
+                           )
+                           ),
                   
                   tabPanel("Analyze Player",
                            fluidRow(

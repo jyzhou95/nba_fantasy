@@ -133,29 +133,62 @@ server <- function(input, output, session) {
     lst.final_data_set_with_games <- getData()
     dt.player_projected_fantasy <- lst.final_data_set_with_games[[1]][,list(player, avg_fantasy_points)]
     dt.player_schedule <- lst.final_data_set_with_games[[2]]
-    # Get player actual performance
-    dt.actual_performance_subset <- dt.actual_performance[dt >= min(dt.player_schedule$dt) & dt <= max(dt.player_schedule$dt)]
-    dt.actual_performance_subset <- merge(dt.actual_performance_subset, dt.player_projected_fantasy, by = c("player"))
-    dt.actual_performance_subset <- dt.actual_performance_subset[lineup != 12]
-    dt.actual_performance_subset <- dt.actual_performance_subset[actual_fantasy_points != 0]
-    
-    dt.actual_performance_aggregate <- dt.actual_performance_subset[,list(actual_fantasy_points = sum(actual_fantasy_points),
-                                                                          projected_fantasy_points = sum(avg_fantasy_points)),
-                                                                  by = list(owner, dt)]
-  
-    
-    dt.actual_performance_aggregate$dt <- as.Date(dt.actual_performance_aggregate$dt)
-    dt.actual_performance_aggregate <- melt(dt.actual_performance_aggregate, id.vars = c("owner", "dt"),
-                                            measure.vars = c("actual_fantasy_points", "projected_fantasy_points"))
-    
-    plt <- ggplot(dt.actual_performance_aggregate, aes(x = dt, y = value, fill = variable)) +
-      geom_bar(stat = "identity", position = "dodge") + theme_bw(base_size = 15) + scale_fill_brewer(palette = "Set1") +
-      facet_wrap(~owner) + ylab("Fantasy Points")
+    if (input$NBA_Start_Date > Sys.Date()){
+      dt.player_schedule <- dt.player_schedule[order(avg_fantasy_points, decreasing = TRUE)]
+      dt.player_schedule[, head(.SD, 10), by=list(owner, dt)]
+      dt.plot.this.predicted <- dt.player_schedule[,list(fantasy_points = sum(avg_fantasy_points),
+                                                     type = "predicted"),
+                                               by = list(dt, owner)]
+      plt <- ggplot(dt.plot.this.predicted, aes(x = dt, y = fantasy_points, fill = type)) +
+        geom_bar(stat = "identity", position = "dodge") + theme_bw(base_size = 15) +
+        facet_wrap(~owner) + ylab("Fantasy Points")
+    } else{
+      # Get player actual performance
+      dt.actual_performance_subset <- dt.actual_performance[dt >= min(dt.player_schedule$dt) & dt <= max(dt.player_schedule$dt)]
+      dt.actual_performance_subset <- merge(dt.actual_performance_subset, dt.player_projected_fantasy, by = c("player"))
+      dt.actual_performance_subset <- dt.actual_performance_subset[lineup != 12]
+      dt.actual_performance_subset <- dt.actual_performance_subset[actual_fantasy_points != 0]
       
+      if (input$playerPerformance){
+        dt.actual_performance_aggregate <- dt.actual_performance_subset[,list(actual_fantasy_points = sum(actual_fantasy_points),
+                                                                              projected_fantasy_points = sum(avg_fantasy_points)),
+                                                                        by = list(owner, player)]
+        
+        dt.actual_performance_aggregate[,id := paste0(player, "_", owner)]
+        dt.actual_performance_aggregate <- dt.actual_performance_aggregate[order(actual_fantasy_points, decreasing = TRUE)]
+        dt.actual_performance_aggregate$id <- factor(dt.actual_performance_aggregate$id, levels = dt.actual_performance_aggregate$id)
+        
+        dt.actual_performance_aggregate <- melt(dt.actual_performance_aggregate, id.vars = c("owner", "player", "id"),
+                                                measure.vars = c("actual_fantasy_points", "projected_fantasy_points"))
+        
+        
+        plt <- ggplot(data = dt.actual_performance_aggregate, aes(x = id, y = value, fill = variable)) +
+          geom_bar(stat = "identity", position = "dodge") + theme_bw(base_size = 15) + scale_fill_brewer(palette = "Set1") +
+          facet_wrap(~owner, scales = "free_x") + ylab("Fantasy Points") + theme(axis.text.x = element_text(angle = 45)) + ylab("") +
+          xlab("")
+      } else{
+        dt.actual_performance_aggregate <- dt.actual_performance_subset[,list(actual_fantasy_points = sum(actual_fantasy_points),
+                                                                              projected_fantasy_points = sum(avg_fantasy_points)),
+                                                                        by = list(owner, dt)]
+        
+        
+        dt.actual_performance_aggregate$dt <- as.Date(dt.actual_performance_aggregate$dt)
+        dt.actual_performance_aggregate <- melt(dt.actual_performance_aggregate, id.vars = c("owner", "dt"),
+                                                measure.vars = c("actual_fantasy_points", "projected_fantasy_points"))
+        
+        plt <- ggplot(dt.actual_performance_aggregate, aes(x = dt, y = value, fill = variable)) +
+          geom_bar(stat = "identity", position = "dodge") + theme_bw(base_size = 15) + scale_fill_brewer(palette = "Set1") +
+          facet_wrap(~owner) + ylab("Fantasy Points")
+      }
+    }
     ggplotly(plt)
-    
   })
   
+  weekly_player_performance <- renderPlotly({
+    lst.final_data_set_with_games <- getData()
+    dt.player_projected_fantasy <- lst.final_data_set_with_games[[1]][,list(player, avg_fantasy_points)]
+    dt.player_schedule <- lst.final_data_set_with_games[[2]]
+  })
   
   output$timeSeries <- renderPlotly({
     

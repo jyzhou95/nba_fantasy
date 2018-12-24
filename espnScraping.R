@@ -31,8 +31,8 @@ dt.historical_performance <- fread("D:/Desktop/nba_fantasy/fantasy_league_perfor
 dt.nba_period <- fread("D:/Desktop/nba_fantasy/period_dates.csv")
 
 vec.owner_id <- c(1:6)
-# vec.period <- c((max(dt.historical_performance$period)):(max(dt.nba_period[dt < Sys.Date()]$period)))
-vec.period <- c(1:66)
+vec.period <- c((max(dt.historical_performance$period)):(max(dt.nba_period[dt < Sys.Date()]$period)))
+# vec.period <- c(1:66)
 
 # Scrape historical performance
 dt.write.this <- rbindlist(lapply(vec.owner_id, function(x){
@@ -62,4 +62,8 @@ remDr$closeall()
 rm(driver)
 gc()
 
-write.csv(x = dt.write.this,file = "D:/Desktop/nba_fantasy/fantasy_league_performance.csv")
+dt.bind.to.this <- fread("D:/Desktop/nba_fantasy/fantasy_league_performance.csv")
+dt.bind.to.this[,V1 := NULL]
+dt.bind.to.this <- rbind(dt.bind.to.this, dt.write.this)
+
+write.csv(x = dt.bind.to.this,file = "D:/Desktop/nba_fantasy/fantasy_league_performance.csv")

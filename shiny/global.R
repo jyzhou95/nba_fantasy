@@ -9,6 +9,7 @@ library(plotly)
 library(ggplot2)
 library(shiny)
 library(shinycssloaders)
+library(shinyWidgets)
 # https://github.com/abresler/requestsR
 # https://stmorse.github.io/journal/espn-fantasy-python.html
 # https://dusty-turner.netlify.com/post/mathlete-fantasy-football-analysis/
