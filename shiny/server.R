@@ -6,18 +6,49 @@ server <- function(input, output, session) {
     sunday <- ceiling_date(start_date, "week")
     
     chr.month <- tolower(as.character(month(start_date, label = TRUE, abbr = FALSE)))
+    next.month <- tolower(as.character(month(start_date + 7, label = TRUE, abbr = FALSE)))
     
-    url <- glue("https://www.basketball-reference.com/leagues/NBA_2019_games-{chr.month}.html")
-    games_list <- url %>%
-      read_html() %>%
-      html_nodes(xpath='//*[@id="schedule"]') %>%
-      html_table()
+    if (chr.month != next.month){
+      url <- glue("https://www.basketball-reference.com/leagues/NBA_2019_games-{chr.month}.html")
+      games_list <- url %>%
+        read_html() %>%
+        html_nodes(xpath='//*[@id="schedule"]') %>%
+        html_table()
+      
+      games_list <- games_list[[1]]
+      games_list <- data.table(games_list)
+      
+      colnames(games_list) <- c("dt", "time", "visitor", "visitor_pts", "home", "home_pts", "box_score", "blank", "attendance", "notes")
+      dt.games_list <- games_list[,list(dt, visitor, home)]
+      
+      url <- glue("https://www.basketball-reference.com/leagues/NBA_2019_games-{next.month}.html")
+      games_list <- url %>%
+        read_html() %>%
+        html_nodes(xpath='//*[@id="schedule"]') %>%
+        html_table()
+      
+      games_list <- games_list[[1]]
+      games_list <- data.table(games_list)
+      
+      colnames(games_list) <- c("dt", "time", "visitor", "visitor_pts", "home", "home_pts", "box_score", "blank", "attendance", "notes")
+      dt.games_list <- rbind(dt.games_list, games_list[,list(dt, visitor, home)])
+      
+      
+    } else{
+      url <- glue("https://www.basketball-reference.com/leagues/NBA_2019_games-{chr.month}.html")
+      games_list <- url %>%
+        read_html() %>%
+        html_nodes(xpath='//*[@id="schedule"]') %>%
+        html_table()
+      
+      games_list <- games_list[[1]]
+      games_list <- data.table(games_list)
+      
+      colnames(games_list) <- c("dt", "time", "visitor", "visitor_pts", "home", "home_pts", "box_score", "blank", "attendance", "notes")
+      dt.games_list <- games_list[,list(dt, visitor, home)]
+      
+    }
     
-    games_list <- games_list[[1]]
-    games_list <- data.table(games_list)
-    
-    colnames(games_list) <- c("dt", "time", "visitor", "visitor_pts", "home", "home_pts", "box_score", "blank", "attendance", "notes")
-    dt.games_list <- games_list[,list(dt, visitor, home)]
     
     # Format date
     dt.games_list <- rbindlist(lapply(1:nrow(dt.games_list), function(x){

@@ -2,6 +2,7 @@ library(RSelenium)
 library(rvest)
 library(data.table)
 library(glue)
+library(jsonlite)
 
 url = "http://fantasy.espn.com/basketball/team?leagueId=8490389&teamId=1&seasonId=2019"
 
@@ -25,14 +26,14 @@ vec.owner <- c("me", "kyle", "liam", "alex", "edward", "daniel")
 
 # Backfill
 # Determine latest date we've scraped
-dt.historical_performance <- fread("D:/Desktop/nba_fantasy/fantasy_league_performance.csv")
+# dt.historical_performance <- fread("D:/Desktop/nba_fantasy/fantasy_league_performance.csv")
 
 # Determine latest date to fill
 dt.nba_period <- fread("D:/Desktop/nba_fantasy/period_dates.csv")
 
 vec.owner_id <- c(1:6)
-vec.period <- c((max(dt.historical_performance$period)):(max(dt.nba_period[dt < Sys.Date()]$period)))
-# vec.period <- c(1:66)
+# vec.period <- c((max(dt.historical_performance$period)):(max(dt.nba_period[dt < Sys.Date()]$period)))
+vec.period <- c(1:103)
 
 # Scrape historical performance
 dt.write.this <- rbindlist(lapply(vec.owner_id, function(x){
