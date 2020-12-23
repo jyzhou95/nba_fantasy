@@ -13,7 +13,9 @@ ui <- shinyUI(
                                                    choices = c("all", "available", "unavailable"),
                                                    selected = "all")),
                              column(3, selectInput("owner", "Owner: ", c("all", "me", "alex", "kyle", 
-                                                                         "edward", "liam", "daniel"),
+                                                                         "edward", "liam", "daniel",
+                                                                         "eugene", "greg", "stephen",
+                                                                         "lee"),
                                                    selected = "all"))
                              ),
                            
@@ -34,33 +36,53 @@ ui <- shinyUI(
                            fluidRow(
                              fluidRow(
                                column(9, selectInput(inputId = "myPlayers", label = "My players: ",choices = unique(dt.final_players$player),
-                                                     selected = vec.my_players, multiple = TRUE, width = 900))
+                                                     selected = dt.curr_players[owner == "me"]$player, multiple = TRUE, width = 900))
                              ),
                              
                              fluidRow(
                                column(9, selectInput(inputId = "alexPlayers", label = "Alex players: ",choices = unique(dt.final_players$player),
-                                                     selected = vec.alex, multiple = TRUE, width = 900))
+                                                     selected = dt.curr_players[owner == "alex"]$player, multiple = TRUE, width = 900))
                              ),
                              
                              fluidRow(
                                column(9, selectInput(inputId = "kylePlayers", label = "Kyle players: ",choices = unique(dt.final_players$player),
-                                                     selected = vec.kyle, multiple = TRUE, width = 900))
+                                                     selected = dt.curr_players[owner == "kyle"]$player, multiple = TRUE, width = 900))
                              ),
                              
                              fluidRow(
-                               column(9, selectInput(inputId = "edwardPlayers", label = "Edward players: ",choices = unique(dt.final_players$player),
-                                                     selected = vec.edward, multiple = TRUE, width = 900))
+                               column(9, selectInput(inputId = "eddiePlayers", label = "Eddie players: ",choices = unique(dt.final_players$player),
+                                                     selected = dt.curr_players[owner == "eddie"]$player, multiple = TRUE, width = 900))
                              ),
                              
                              fluidRow(
                                column(9, selectInput(inputId = "danielPlayers", label = "Daniel players: ",choices = unique(dt.final_players$player),
-                                                     selected = vec.daniel, multiple = TRUE, width = 900))
+                                                     selected = dt.curr_players[owner == "daniel"]$player, multiple = TRUE, width = 900))
                              ),
                              
                              
                              fluidRow(
                                column(6, selectInput(inputId = "liamPlayers", label = "Liam players: ",choices = unique(dt.final_players$player),
-                                                     selected = vec.liam, multiple = TRUE, width = 900))
+                                                     selected = dt.curr_players[owner == "liam"]$player, multiple = TRUE, width = 900))
+                             ),
+                             
+                             fluidRow(
+                               column(6, selectInput(inputId = "eugenePlayers", label = "Eugene players: ",choices = unique(dt.final_players$player),
+                                                     selected = dt.curr_players[owner == "eugene"]$player, multiple = TRUE, width = 900))
+                             ),
+                             
+                             fluidRow(
+                               column(6, selectInput(inputId = "stephenPlayers", label = "Stephen players: ",choices = unique(dt.final_players$player),
+                                                     selected = dt.curr_players[owner == "stephen"]$player, multiple = TRUE, width = 900))
+                             ),
+                             
+                             fluidRow(
+                               column(6, selectInput(inputId = "leePlayers", label = "Lee players: ",choices = unique(dt.final_players$player),
+                                                     selected = dt.curr_players[owner == "lee"]$player, multiple = TRUE, width = 900))
+                             ),
+                             
+                             fluidRow(
+                               column(6, selectInput(inputId = "gregPlayers", label = "Greg players: ",choices = unique(dt.final_players$player),
+                                                     selected = dt.curr_players[owner == "greg"]$player, multiple = TRUE, width = 900))
                              ),
                              
                              fluidRow(
@@ -84,7 +106,7 @@ ui <- shinyUI(
                            fluidRow(
                              column(3, selectInput("player", "Enter Player: ", selected = "LeBron James", 
                                                    choices = unique(dt.final_players$player))),
-                             column(3, selectInput("year", "Choose year: ", selected = 2019, choices = c(2017, 2018, 2019)))
+                             column(3, selectInput("year", "Choose year: ", selected = 2019, choices = c(2017, 2018, 2019, 2020)))
                            ),
                            fluidRow(
                              column(9, plotlyOutput("timeSeries", width = 1400, height = 700) %>% withSpinner(color="#0dc5c1"))

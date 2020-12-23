@@ -15,54 +15,34 @@ library(shinyWidgets)
 # https://dusty-turner.netlify.com/post/mathlete-fantasy-football-analysis/
 library(jsonlite)
 library(httr)
+library(nbastatR)
 
 ###################################################################################################
 ###################################################################################################
+dt.nba_players <- data.table(nba_players())[isActive == T]
+dt.nba_teams <- data.table(nba_teams())[,list(idTeam, slugTeam, teamNameFull)]
+dt.nba_merged <- merge(dt.nba_players, dt.nba_teams, by = c("idTeam"))
+dt.nba_merged[,player := tolower(namePlayer)]
 
-dt.historical_performance <- fread("fantasy_league_performance.csv")
-dt.nba_period <- fread("period_dates.csv")
-dt.actual_performance <- merge(dt.historical_performance[,list(owner, period, player, actual_fantasy_points, lineup)],
+dt.historical_performance <- fread("D:/git_repos/nba_fantasy/shiny/fantasy_league_performance.csv")
+dt.historical_performance$player <- tolower(dt.historical_performance$player)
+dt.nba_period <- fread("D:/git_repos/nba_fantasy/shiny/period_dates.csv")
+dt.actual_performance <- merge(dt.historical_performance[,list(owner, period, player, 
+                                                               actual_fantasy_points, 
+                                                               predicted_fantasy_points, lineup)],
                                dt.nba_period[,list(period, dt)], by = c("period"))
 
 int.latest_game <- max(dt.actual_performance$period)
 
 # Fix people's names
-dt.actual_performance[grepl("Jr\\.", player)]$player <- substr(dt.actual_performance[grepl("Jr\\.", player)]$player, start = 0, stop = nchar(dt.actual_performance[grepl("Jr\\.", player)]$player) - 4)
-
+dt.actual_performance[grepl("Jr\\.", player)]$player <- substr(dt.actual_performance[grepl("Jr\\.", player)]$player, 
+                                                               start = 0, 
+                                                               stop = nchar(dt.actual_performance[grepl("Jr\\.", player)]$player) - 4)
+dt.actual_performance[,dt := as.Date(dt, "%m/%d/%Y")]
 # Remove periods from people's names
 # dt.actual_performance[grepl("\\.", player)]$player <- gsub("\\.", "", dt.actual_performance[grepl("\\.", player)]$player)
 
-vec.my_players <- dt.actual_performance[period == int.latest_game & owner == "me"]$player
-vec.alex <- dt.actual_performance[period == int.latest_game & owner == "alex"]$player
-vec.kyle <- dt.actual_performance[period == int.latest_game & owner == "kyle"]$player
-vec.edward <- dt.actual_performance[period == int.latest_game & owner == "edward"]$player
-vec.daniel <- dt.actual_performance[period == int.latest_game & owner == "daniel"]$player
-vec.liam <- dt.actual_performance[period == int.latest_game & owner == "liam"]$player
-
-
-# vec.my_players <- c("Chris Paul", "Devin Booker", "Kawhi Leonard", "LaMarcus Aldridge", "DeAndre Jordan",
-#                     "Thaddeus Young", "LeBron James", "Enes Kanter", "Steven Adams",
-#                     "Blake Griffin", "Serge Ibaka", "Josh Richardson", "Kent Bazemore")
-# 
-# vec.alex <- c("John Wall", "Bradley Beal", "Jayson Tatum", "Hassan Whiteside",
-#               "James Harden", "Russell Westbrook", "Clint Capela", "Nemanja Bjelica",
-#               "Deandre Ayton", "Donovan Mitchell", "Montrezl Harrell", "Nikola Mirotic", "Khris Middleton")
-# 
-# vec.kyle <- c("Nikola Jokic", "De'Aaron Fox", "Victor Oladipo", "Robert Covington", "John Collins",
-#               "Damian Lillard", "Domantas Sabonis", "Larry Nance", "Kevin Durant", "Rudy Gobert",
-#               "Eric Bledsoe", "Nikola Vucevic", "TJ Warren")
-# 
-# vec.edward <- c("Ricky Rubio", "CJ McCollum", "DeMar DeRozan", "Anthony Davis", "Karl-Anthony Towns",
-#                 "Derrick Favors", "Aaron Gordon", "Kyle Lowry", "Myles Turner", "Willie Cauley-Stein",
-#                 "Kemba Walker", "Al Horford", "Zach LaVine")
-# 
-# vec.daniel <- c("Kyrie Irving", "Luka Doncic", "Giannis Antetokounmpo", "Rudy Gay", "Jusuf Nurkic",
-#                 "Ben Simmons", "Draymond Green", "Joel Embiid", "Jaren Jackson", "Danilo Gallinari",
-#                 "JaVale McGee", "Julius Randle", "Pascal Siakam")
-# 
-# vec.liam <- c("Stephen Curry", "Kyle Kuzma", "Jimmy Butler", "Tobias Harris", "Marc Gasol",
-#               "Mike Conley", "Paul George", "Andre Drummond", "Klay Thompson", "Derrick Rose",
-#               "Jrue Holiday", "Jarrett Allen", "D'Angelo Russell")
+dt.curr_players <- dt.actual_performance[period == int.latest_game,list(owner, player)]
 
 ###################################################################################################
 ###################################################################################################
@@ -89,7 +69,7 @@ start_date <- lastmon(Sys.Date())
 
 
 # Get current standings
-url <- "https://www.basketball-reference.com/leagues/NBA_2019.html"
+url <- "https://www.basketball-reference.com/leagues/NBA_2021.html"
 eastern_conference_list <- url %>%
   read_html() %>%
   html_nodes(xpath='//*[@id="confs_standings_E"]') %>%
@@ -115,13 +95,12 @@ dt.all_standings[,losses := NULL]
 dt.all_standings[,team := unlist(strsplit(team, "\\("))[1], by = 1:nrow(dt.all_standings)]
 dt.all_standings[,team := substr(team, 1, nchar(team) - 1)]
 
-dt.player_links <- data.table(NBAPerGameAdvStatistics(season = 2019))
+dt.player_links <- data.table(NBAPerGameAdvStatistics(season = 2020))
 dt.player_links <- unique(dt.player_links[,list(player, link)])
 
-players <- NBAPerGameStatistics(season = 2019)
+players <- NBAPerGameStatistics(season = 2020)
 dt.players <- data.table(players)
-dt.players <- dt.players[,list(player, 
-                               team_code = tm,
+dt.players <- dt.players[,list(player = tolower(iconv(player, from = 'UTF-8', to = 'ASCII//TRANSLIT')), 
                                position = pos,
                                game = g,
                                minutes_played = mp,
@@ -136,10 +115,12 @@ dt.players <- dt.players[,list(player,
                                steals = stl, 
                                blocks = blk, 
                                turnovers = tov)]
+dt.players <- merge(dt.players, dt.nba_merged[,list(player, team_code = slugTeam)],by = c("player"), all = TRUE)
+
 dt.players[,avg_fantasy_points := two_point * 3 - two_point_attempt + 
              three_point * 4 - three_point_attempt + 
              free_throw * 2 - free_throw_attempt +
-             rebounds + assists + blocks * 3 + steals * 3 - turnovers]
+             rebounds + assists * 2 + blocks * 3 + steals * 3 - turnovers * 2]
 
 dt.final_players <- dt.players[,list(player, position, minutes_played, game, team_code, avg_fantasy_points)]
 # Keep most recent team for player that have been traded
@@ -147,31 +128,8 @@ dt.final_players[,id := 1:nrow(dt.final_players)]
 dt.final_players <- dt.final_players[dt.final_players[, .I[id == max(id)], by=player]$V1]
 dt.final_players[,id := NULL]
 
-# funcGetInjuries <- function(vec_players){
-#   dt.return.this <- rbindlist(lapply(vec_players, function(my_player){
-#     print(my_player)
-#     link <- paste0("https://www.basketball-reference.com",
-#                    paste0(dt.player_links[player == my_player]$link))
-#     
-#     injury_list <- link %>%
-#       read_html() %>%
-#       html_nodes(xpath='//*[@id="injury"]') 
-#     
-#     
-#     if (length(injury_list) > 0){
-#       dt.return <- data.table(player = my_player,
-#                               injured = TRUE)
-#     } else{
-#       
-#       dt.return <- data.table(player = my_player,
-#                               injured = FALSE)
-#     }
-#     return (dt.return)
-#     
-#   }))
-#   
-#   return(dt.return.this)
-# }
+dt.final_players <- merge(dt.final_players, dt.actual_performance[,list(player, predicted_fantasy_points)], by = c("player"), all.x = TRUE)
+dt.final_players[!is.na(predicted_fantasy_points), avg_fantasy_points := predicted_fantasy_points]
 
 funcGetInjuries <- function(){
   link <- "https://www.basketball-reference.com/friv/injuries.fcgi"
@@ -185,63 +143,4 @@ funcGetInjuries <- function(){
 }
 
 dt.injuries <- funcGetInjuries()
-
-# Grab player game data for the week
-getPlayerPerformance <- function(vec_players){
-  dt.return.this <- rbindlist(lapply(vec_players, function(my_player){
-    print(my_player)
-    link <- paste0("https://www.basketball-reference.com",
-                   gsub(".html", glue("/gamelog/2019/"), paste0(dt.player_links[player == my_player]$link)))
-    
-    season_games_list <- link %>%
-      read_html() %>%
-      html_nodes(xpath='//*[@id="pgl_basic"]') %>%
-      html_table(fill = TRUE)
-    season_games_list <- season_games_list[[1]]
-    dt.season_games_list <- data.table(season_games_list)
-    
-    dt.season_games_list[,G := as.numeric(G)]
-    dt.season_games_list <- dt.season_games_list[!is.na(G)]
-    dt.season_games_list <- dt.season_games_list[,list(player = my_player,
-                                                       game = G,
-                                                       dt = as.Date(Date),
-                                                       team = Tm,
-                                                       opponent = Opp,
-                                                       two_point = as.numeric(FG) - as.numeric(`3P`),
-                                                       two_point_attempt = as.numeric(FGA) - as.numeric(`3PA`),
-                                                       three_point = as.numeric(`3P`),
-                                                       three_point_attempt = as.numeric(`3PA`),
-                                                       free_throw = as.numeric(FT),
-                                                       free_throw_attempt = as.numeric(FTA),
-                                                       rebounds = as.numeric(TRB),
-                                                       assists = as.numeric(AST),
-                                                       steals = as.numeric(STL),
-                                                       blocks = as.numeric(BLK),
-                                                       turnovers = as.numeric(TOV),
-                                                       points = as.numeric(PTS)
-    )]
-    
-    
-    dt.season_games_list[,fantasy_points := two_point * 3 - two_point_attempt + 
-                           three_point * 4 - three_point_attempt + 
-                           free_throw * 2 - free_throw_attempt +
-                           rebounds + assists + blocks * 3 + steals * 3 - turnovers]
-    return (dt.season_games_list)
-    
-  }))
-  return (dt.return.this)
-}
-
-# dt.final_players[,owner := "none"]
-# dt.final_players[,status := "available"]
-# dt.final_players[player %in% vec.my_players]$owner <- "me"
-# dt.final_players[player %in% vec.alex]$owner <- "alex"
-# dt.final_players[player %in% vec.kyle]$owner <- "kyle"
-# dt.final_players[player %in% vec.edward]$owner <- "edward"
-# dt.final_players[player %in% vec.daniel]$owner <- "daniel"
-# dt.final_players[player %in% vec.liam]$owner <- "liam"
-# dt.final_players[owner != "none",status := "unavailable"]
-
-
-
-
+dt.injuries[,player := tolower(player)]

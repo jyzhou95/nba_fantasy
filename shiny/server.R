@@ -9,7 +9,7 @@ server <- function(input, output, session) {
     next.month <- tolower(as.character(month(start_date + 7, label = TRUE, abbr = FALSE)))
     
     if (chr.month != next.month){
-      url <- glue("https://www.basketball-reference.com/leagues/NBA_2019_games-{chr.month}.html")
+      url <- glue("https://www.basketball-reference.com/leagues/NBA_2021_games-{chr.month}.html")
       games_list <- url %>%
         read_html() %>%
         html_nodes(xpath='//*[@id="schedule"]') %>%
@@ -21,7 +21,7 @@ server <- function(input, output, session) {
       colnames(games_list) <- c("dt", "time", "visitor", "visitor_pts", "home", "home_pts", "box_score", "blank", "attendance", "notes")
       dt.games_list <- games_list[,list(dt, visitor, home)]
       
-      url <- glue("https://www.basketball-reference.com/leagues/NBA_2019_games-{next.month}.html")
+      url <- glue("https://www.basketball-reference.com/leagues/NBA_2021_games-{next.month}.html")
       games_list <- url %>%
         read_html() %>%
         html_nodes(xpath='//*[@id="schedule"]') %>%
@@ -35,7 +35,7 @@ server <- function(input, output, session) {
       
       
     } else{
-      url <- glue("https://www.basketball-reference.com/leagues/NBA_2019_games-{chr.month}.html")
+      url <- glue("https://www.basketball-reference.com/leagues/NBA_2021_games-{chr.month}.html")
       games_list <- url %>%
         read_html() %>%
         html_nodes(xpath='//*[@id="schedule"]') %>%
@@ -75,9 +75,13 @@ server <- function(input, output, session) {
     dt.final_players[player %in% input$myPlayers]$owner <- "me"
     dt.final_players[player %in% input$alexPlayers]$owner <- "alex"
     dt.final_players[player %in% input$kylePlayers]$owner <- "kyle"
-    dt.final_players[player %in% input$edwardPlayers]$owner <- "edward"
+    dt.final_players[player %in% input$eddiePlayers]$owner <- "eddie"
     dt.final_players[player %in% input$danielPlayers]$owner <- "daniel"
     dt.final_players[player %in% input$liamPlayers]$owner <- "liam"
+    dt.final_players[player %in% input$eugenePlayers]$owner <- "eugene"
+    dt.final_players[player %in% input$gregPlayers]$owner <- "greg"
+    dt.final_players[player %in% input$stephenPlayers]$owner <- "stephen"
+    dt.final_players[player %in% input$leePlayers]$owner <- "lee"
     dt.final_players[owner != "none",status := "unavailable"]
     
     dt.final_data_set <- merge(dt.final_team, dt.final_players, by = c("team_code"))
@@ -101,7 +105,10 @@ server <- function(input, output, session) {
     # Merge on the schedule
     dt.player_schedule <- merge(merge(dt.games_list_flat, dt.final_team[,list(team, team_code, game_count)], by = c("team")),
                                 dt.final_players[owner != "none"], by = c("team_code"), allow.cartesian = TRUE)
-    
+    # Merge on lineup
+    dt.player_schedule <- merge(dt.player_schedule,
+                                dt.actual_performance[,list(dt, owner, player, lineup)],
+                                by = c("dt", "owner", "player"))
     
     return (list(dt.final_data_set_with_games, dt.player_schedule))
   })
@@ -128,7 +135,6 @@ server <- function(input, output, session) {
     if (team_owner != "all"){
       dt.final_data_set_with_games_plot <- dt.final_data_set_with_games_plot[owner == team_owner]
     }
-    
     my_plt <- ggplot(dt.final_data_set_with_games_plot, aes(x = minutes_played, 
                                                             y = projected_fantasy_points,
                                                             color = paste(game_count, status),
@@ -145,10 +151,9 @@ server <- function(input, output, session) {
   })
   
   output$projectionTables <- renderDataTable({
-    
     lst.final_data_set_with_games <- getData()
     dt.player_projected_fantasy <- unique(lst.final_data_set_with_games[[1]][,list(player, injured)])
-    dt.player_schedule <- lst.final_data_set_with_games[[2]]
+    dt.player_schedule <- unique(lst.final_data_set_with_games[[2]])
     
     dt.player_schedule <- dt.player_schedule[order(avg_fantasy_points, decreasing = TRUE)]
     dt.player_schedule_final <- merge(dt.player_schedule, dt.player_projected_fantasy, by = c("player"))
@@ -156,11 +161,17 @@ server <- function(input, output, session) {
     dt.player_schedule_final <- dt.player_schedule_final[injured == FALSE]
     dt.return.this <- dt.player_schedule_final[, head(.SD, 10), by=list(owner, dt)]
     
-    dt.num_games <- dt.player_schedule_final[,.N, by = list(owner)]
+    dt.num_games <- dt.player_schedule_final[,list(optimized_num_games = .N), by = list(owner)]
     
-    dt.return.this <- dt.return.this[,list(projected_fantasy_score = sum(avg_fantasy_points)),
+    dt.return.this <- dt.return.this[,list(optimized_fantasy_score = sum(avg_fantasy_points)),
                                            by = list(owner)][owner != "none"]
+    
     dt.return.this <- merge(dt.return.this, dt.num_games, by = c("owner"))
+    
+    dt.merge.this <- dt.player_schedule_final[!(lineup %in% c(12, 13))][,list(current_fantasy_points = sum(avg_fantasy_points),
+                                                             current_num_games = .N),
+                                                       by = list(owner)][owner != "none"]
+    dt.return.this <- merge(dt.return.this, dt.merge.this, by = c("owner"))
     
     return (dt.return.this)
   })
@@ -182,7 +193,7 @@ server <- function(input, output, session) {
       # Get player actual performance
       dt.actual_performance_subset <- dt.actual_performance[dt >= min(dt.player_schedule$dt) & dt <= max(dt.player_schedule$dt)]
       dt.actual_performance_subset <- merge(dt.actual_performance_subset, dt.player_projected_fantasy, by = c("player"))
-      dt.actual_performance_subset <- dt.actual_performance_subset[lineup != 12]
+      dt.actual_performance_subset <- dt.actual_performance_subset[!(lineup %in% c(12, 13))]
       dt.actual_performance_subset <- dt.actual_performance_subset[actual_fantasy_points != 0]
       
       if (input$playerPerformance){
@@ -268,7 +279,7 @@ server <- function(input, output, session) {
     dt.season_games_list[,fantasy_points := two_point * 3 - two_point_attempt + 
                            three_point * 4 - three_point_attempt + 
                            free_throw * 2 - free_throw_attempt +
-                           rebounds + assists + blocks * 3 + steals * 3 - turnovers]
+                           rebounds + assists * 2 + blocks * 3 + steals * 3 - turnovers * 2]
     
     
     plt.time_series <- ggplot(dt.season_games_list, 
@@ -294,7 +305,7 @@ server <- function(input, output, session) {
       lapply(dt.player_links$player, function(x){
         print(x)
         link <- paste0("https://www.basketball-reference.com",
-                       gsub(".html", glue("/gamelog/2019/"), paste0(dt.player_links[player == x]$link)))
+                       gsub(".html", glue("/gamelog/2021/"), paste0(dt.player_links[player == x]$link)))
         
         season_games_list <- link %>%
           read_html() %>%
@@ -328,7 +339,7 @@ server <- function(input, output, session) {
         dt.season_games_list[,fantasy_points := two_point * 3 - two_point_attempt + 
                                three_point * 4 - three_point_attempt + 
                                free_throw * 2 - free_throw_attempt +
-                               rebounds + assists + blocks * 3 + steals * 3 - turnovers]
+                               rebounds + assists * 2 + blocks * 3 + steals * 3 - turnovers * 2]
         return (dt.season_games_list)
       })
       
